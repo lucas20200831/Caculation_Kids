@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>加减乘除计算器（除法余数切换）</title>
+    <style>
+        body {
+            background-color: #f5fafe;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: "Arial", 微软雅黑, sans-serif;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px 20px; /* 左右内边距减小，避免拥挤 */
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 420px; /* 调整最大宽度，适配输入框 */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c79e0;
+            font-size: 22px; /* 缩小标题字体，更紧凑 */
+            margin: 0 0 20px 0;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* 减小元素间距 */
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input {
+            flex: 1;
+            padding: 10px; /* 减小输入框内边距 */
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            font-size: 15px; /* 缩小输入框字体 */
+            text-align: center;
+            outline: none;
+            box-sizing: border-box;
+            /* 限制输入框最小宽度，避免过窄 */
+            min-width: 80px;
+        }
+        input:focus {
+            border-color: #2c79e0;
+        }
+        .operator-select {
+            padding: 10px 12px; /* 减小下拉框内边距 */
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            font-size: 15px; /* 缩小下拉框字体 */
+            background-color: #f8f9fa;
+            cursor: pointer;
+            outline: none;
+            box-sizing: border-box;
+            /* 固定下拉框宽度，更整齐 */
+            width: 50px;
+        }
+        .operator-select:focus {
+            border-color: #2c79e0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px; /* 减小按钮间距 */
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* 适配小屏幕，按钮可换行 */
+        }
+        button {
+            background-color: #2c79e0;
+            color: white;
+            border: none;
+            padding: 10px 16px; /* 减小按钮内边距 */
+            border-radius: 8px;
+            font-size: 15px; /* 缩小按钮字体 */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #1a68d1;
+        }
+        /* 切换按钮样式 */
+        .switch-btn {
+            background-color: #6c757d;
+            display: none; /* 默认隐藏 */
+        }
+        .switch-btn:hover {
+            background-color: #5a6268;
+        }
+        .switch-btn.active {
+            background-color: #28a745;
+        }
+        .result {
+            font-size: 17px; /* 调整结果字体大小 */
+            color: #333;
+            padding: 12px; /* 减小结果区域内边距 */
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            min-height: 22px;
+            box-sizing: border-box;
+            word-break: break-all; /* 超长结果自动换行 */
+        }
+        .correct {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .tip {
+            font-size: 13px; /* 缩小提示文字 */
+            color: #6c757d;
+            margin-top: 8px;
+            display: none; /* 默认隐藏 */
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 加减乘除计算器</h1>
+        
+        <!-- 输入区域 -->
+        <div class="input-group">
+            <input type="number" id="num1" placeholder="输入数字" min="0">
+            <select id="operator" class="operator-select" onchange="updateSwitchBtnVisibility()">
+                <option value="+">+</option>
+                <option value="-">-</option>
+                <option value="*">×</option>
+                <option value="/">÷</option>
+            </select>
+            <input type="number" id="num2" placeholder="输入数字" min="0">
+        </div>
+        
+        <!-- 按钮组 -->
+        <div class="btn-group">
+            <button onclick="calculateResult()">计算结果</button>
+            <button id="switchBtn" class="switch-btn" onclick="toggleResultMode()">切换到：余数形式</button>
+        </div>
+        
+        <!-- 结果和提示 -->
+        <div class="result" id="result">输入数字并选择运算符，点击计算吧～</div>
+        <div class="tip" id="tip">余数形式：商 余 余数（例：7÷2=3 余 1）</div>
+    </div>
+
+    <script>
+        let isRemainderMode = false; // false=小数模式，true=余数模式
+        const switchBtn = document.getElementById("switchBtn");
+        const tip = document.getElementById("tip");
+
+        // 切换运算符时，控制按钮和提示的显示/隐藏
+        function updateSwitchBtnVisibility() {
+            const isDivision = document.getElementById("operator").value === "/";
+            switchBtn.style.display = isDivision ? "inline-block" : "none";
+            tip.style.display = isDivision ? "block" : "none";
+        }
+
+        // 切换除法结果模式
+        function toggleResultMode() {
+            isRemainderMode = !isRemainderMode;
+            // 更新按钮文字（明确当前切换目标）
+            switchBtn.textContent = isRemainderMode ? "切换到：小数形式" : "切换到：余数形式";
+            switchBtn.classList.toggle("active");
+            // 若已计算过，重新显示结果
+            const num1 = Number(document.getElementById("num1").value);
+            const num2 = Number(document.getElementById("num2").value);
+            const operator = document.getElementById("operator").value;
+            if (operator === "/" && !isNaN(num1) && !isNaN(num2) && num1 !== "" && num2 !== "" && num2 !== 0) {
+                showDivisionResult(num1, num2);
+            }
+        }
+
+        // 计算核心函数
+        function calculateResult() {
+            const num1 = Number(document.getElementById("num1").value);
+            const num2 = Number(document.getElementById("num2").value);
+            const operator = document.getElementById("operator").value;
+            const resultElement = document.getElementById("result");
+
+            // 输入验证
+            if (isNaN(num1) || isNaN(num2) || num1 === "" || num2 === "") {
+                resultElement.textContent = "❌ 请输入有效的数字！";
+                resultElement.classList.add("error");
+                resultElement.classList.remove("correct");
+                return;
+            }
+
+            // 非除法运算
+            if (operator !== "/") {
+                let formula, result;
+                switch (operator) {
+                    case "+": result = num1 + num2; formula = `${num1} + ${num2} =`; break;
+                    case "-": result = num1 - num2; formula = `${num1} - ${num2} =`; break;
+                    case "*": result = num1 * num2; formula = `${num1} × ${num2} =`; break;
+                }
+                resultElement.textContent = `${formula} ${result}`;
+                resultElement.classList.add("correct");
+                resultElement.classList.remove("error");
+                return;
+            }
+
+            // 除法运算（单独处理）
+            if (num2 === 0) {
+                resultElement.textContent = "❌ 除数不能为0！";
+                resultElement.classList.add("error");
+                resultElement.classList.remove("correct");
+                return;
+            }
+            showDivisionResult(num1, num2);
+        }
+
+        // 显示除法结果（严格按当前模式）
+        function showDivisionResult(num1, num2) {
+            const resultElement = document.getElementById("result");
+            const formula = `${num1} ÷ ${num2} =`;
+
+            if (isRemainderMode) {
+                // 余数模式：强制显示商和余数（无论是否整除）
+                const quotient = Math.floor(num1 / num2); // 商（整数）
+                const remainder = num1 % num2; // 余数
+                resultElement.textContent = `${formula} ${quotient} 余 ${remainder}`;
+            } else {
+                // 小数模式：保留2位小数
+                const decimalResult = Math.round((num1 / num2) * 100) / 100;
+                resultElement.textContent = `${formula} ${decimalResult}`;
+            }
+
+            resultElement.classList.add("correct");
+            resultElement.classList.remove("error");
+        }
+
+        // 初始化
+        updateSwitchBtnVisibility();
+    </script>
+</body>
+</html>
